@@ -1,0 +1,20 @@
+{
+  "threshold": 0.257640036683702,
+  "metrics": {
+    "pr_auc": 0.3766618619410799,
+    "roc_auc": 0.8396671823257993,
+    "log_loss": 0.13337169482275768,
+    "precision": 0.7713675213675214,
+    "recall": 0.11592806679511881,
+    "f1": 0.20156337241764377,
+    "false_positive_rate": 0.0012411265253097017,
+    "false_negative_rate": 0.8840719332048812,
+    "true_positives": 361.0,
+    "false_positives": 107.0,
+    "true_negatives": 86105.0,
+    "false_negatives": 2753.0,
+    "precision_at_100": 0.75,
+    "precision_at_500": 0.772,
+    "precision_at_1000": 0.786
+  }
+}
