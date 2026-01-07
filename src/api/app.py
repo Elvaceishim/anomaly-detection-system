@@ -9,6 +9,8 @@ This module creates the FastAPI app with:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -115,13 +117,15 @@ app.include_router(router)
 
 @app.get("/")
 async def root():
-    """Root endpoint with API info."""
-    return {
-        "name": "Transaction Anomaly Detection API",
-        "version": "0.1.0",
-        "status": "ok" if model_state.is_loaded else "model_not_loaded",
-        "docs": "/docs"
-    }
+    """Serve the dashboard."""
+    static_dir = Path(__file__).parent.parent / "static"
+    return FileResponse(static_dir / "index.html")
+
+
+# Mount static files
+static_path = Path(__file__).parent.parent / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 
 @app.get("/health")

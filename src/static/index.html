@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Detection Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🛡️</div>
+                <h1>Anomaly Detection</h1>
+            </div>
+            <div class="status-badge" id="apiStatus">
+                <span class="status-dot"></span>
+                <span>Checking...</span>
+            </div>
+        </header>
+
+        <!-- Statistics Bar -->
+        <section class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="statTotal">0</span>
+                    <span class="stat-label">Total Scanned</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <span class="stat-value flagged" id="statFlagged">0</span>
+                    <span class="stat-label">Flagged</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <span class="stat-value safe" id="statSafe">0</span>
+                    <span class="stat-label">Safe</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="statFlagRate">0%</span>
+                    <span class="stat-label">Flag Rate</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Transaction Form -->
+            <section class="card form-card">
+                <h2>Score Transaction</h2>
+                <form id="transactionForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="transaction_id">Transaction ID</label>
+                            <input type="text" id="transaction_id" value="txn_demo_001" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="user_id">User ID</label>
+                            <input type="text" id="user_id" value="user_demo_01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Amount ($)</label>
+                            <input type="number" id="amount" value="500" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="timestamp">Timestamp</label>
+                            <input type="datetime-local" id="timestamp" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="transaction_type">Transaction Type</label>
+                            <select id="transaction_type" required>
+                                <option value="payment">Payment</option>
+                                <option value="transfer" selected>Transfer</option>
+                                <option value="cash-out">Cash Out</option>
+                                <option value="debit">Debit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="merchant_category">Merchant Category</label>
+                            <select id="merchant_category" required>
+                                <option value="electronics">Electronics</option>
+                                <option value="food">Food</option>
+                                <option value="travel">Travel</option>
+                                <option value="jewelry">Jewelry</option>
+                                <option value="entertainment">Entertainment</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="location">Location</label>
+                            <input type="text" id="location" value="New York" required>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" id="is_failed">
+                                Failed Transaction
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <span>Analyze Transaction</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Model Info Panel -->
+            <section class="card model-card glass">
+                <h2>Model Info</h2>
+                <div class="model-info" id="modelInfo">
+                    <div class="model-loading">Loading model info...</div>
+                </div>
+
+                <!-- Threshold Control -->
+                <div class="threshold-control">
+                    <div class="threshold-header">
+                        <label for="thresholdSlider">Detection Threshold</label>
+                        <span class="threshold-value" id="thresholdValue">--</span>
+                    </div>
+                    <input type="range" id="thresholdSlider" min="0" max="100" value="25" class="threshold-slider">
+                    <div class="threshold-labels">
+                        <span>More Sensitive</span>
+                        <span>Less Sensitive</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="card results-card" id="resultsCard" style="display: none;">
+                <h2>Analysis Result</h2>
+                <div class="result-content">
+                    <div class="score-display" id="scoreDisplay">
+                        <div class="score-ring">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="score-bg" cx="50" cy="50" r="45" />
+                                <circle class="score-progress" cx="50" cy="50" r="45" id="scoreProgress" />
+                            </svg>
+                            <div class="score-value" id="scoreValue">0%</div>
+                        </div>
+                        <div class="score-label" id="scoreLabel">Risk Score</div>
+                    </div>
+                    <div class="result-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Transaction ID</span>
+                            <span class="detail-value" id="resultTxnId">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Flagged</span>
+                            <span class="detail-value" id="resultFlagged">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Threshold</span>
+                            <span class="detail-value" id="resultThreshold">-</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Transactions -->
+            <section class="card history-card">
+                <div class="card-header">
+                    <h2>Recent Transactions</h2>
+                    <button class="clear-btn" id="clearHistory">Clear</button>
+                </div>
+                <div class="transactions-list" id="transactionsList">
+                    <div class="empty-state">No transactions scored yet</div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Anomaly Detection System • Powered by LightGBM</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

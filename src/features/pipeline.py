@@ -144,7 +144,19 @@ class FeatureEngineer:
         df = self._preprocess_ieee_features(df, fit=True)
         
         # 8. Handle missing values and store fill values
-        feature_cols = self.settings.feature_columns
+        # Filter to only columns that actually exist in the dataframe
+        all_feature_cols = self.settings.feature_columns
+        feature_cols = [c for c in all_feature_cols if c in df.columns]
+        
+        # Add new deviation features if they exist
+        new_features = ["log_amount_vs_user_median", "log_amount_vs_merchant_median"]
+        for feat in new_features:
+            if feat in df.columns and feat not in feature_cols:
+                feature_cols.append(feat)
+        
+        # Store the actual feature columns used
+        self._fitted_feature_cols = feature_cols
+        
         X = df[feature_cols].copy()
         
         # Store median values for imputation (only for numeric columns)
@@ -232,12 +244,12 @@ class FeatureEngineer:
         df = self._preprocess_ieee_features(df, fit=False)
         
         # 8. Extract feature columns and fill missing values
-        feature_cols = self.settings.feature_columns
+        # Use the feature columns that were fitted during training
+        feature_cols = getattr(self, '_fitted_feature_cols', self.settings.feature_columns)
         
         # Ensure all expected columns exist (handle optional/missing features)
-        missing_cols = [c for c in feature_cols if c not in df.columns]
-        if missing_cols:
-            for col in missing_cols:
+        for col in feature_cols:
+            if col not in df.columns:
                 df[col] = np.nan
                 
         X = df[feature_cols].copy()
@@ -300,6 +312,7 @@ class FeatureEngineer:
             "merchant_stats": self.merchant_stats,
             "fill_values": self.fill_values,
             "feature_columns": self.settings.feature_columns,
+            "fitted_feature_cols": getattr(self, '_fitted_feature_cols', self.settings.feature_columns),
         }
         
         filepath = Path(filepath)
@@ -325,6 +338,7 @@ class FeatureEngineer:
         engineer.encoders = state["encoders"]
         engineer.merchant_stats = state["merchant_stats"]
         engineer.fill_values = state["fill_values"]
+        engineer._fitted_feature_cols = state.get("fitted_feature_cols", state.get("feature_columns", []))
         engineer.is_fitted = True
         
         print(f"Loaded feature engineer from {filepath}")

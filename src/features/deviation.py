@@ -146,10 +146,14 @@ def compute_deviation_features(
     # Drop intermediate columns
     df = df.drop(columns=["user_rolling_mean", "user_rolling_std", "user_rolling_median"], errors="ignore")
     
-    # Clip extreme values for stability
+    # Clip extreme values for stability (increased from 100 to 10000 for better extreme value discrimination)
     df["amount_zscore_user"] = df["amount_zscore_user"].clip(-10, 10)
-    df["amount_vs_user_median_ratio"] = df["amount_vs_user_median_ratio"].clip(0, 100)
-    df["amount_vs_merchant_median"] = df["amount_vs_merchant_median"].clip(0, 100)
+    df["amount_vs_user_median_ratio"] = df["amount_vs_user_median_ratio"].clip(0, 10000)
+    df["amount_vs_merchant_median"] = df["amount_vs_merchant_median"].clip(0, 10000)
+    
+    # Add log-scaled ratio features for better extreme value handling
+    df["log_amount_vs_user_median"] = np.log1p(df["amount_vs_user_median_ratio"])
+    df["log_amount_vs_merchant_median"] = np.log1p(df["amount_vs_merchant_median"])
     
     # Re-sort by original timestamp order
     df = df.sort_values("timestamp").reset_index(drop=True)
