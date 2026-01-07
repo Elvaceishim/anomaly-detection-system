@@ -2,7 +2,7 @@ services:
   - type: web
     name: anomaly-detection-api
     runtime: docker
-    repo: https://github.com/YOUR_USERNAME/anomaly-detection-system
+    repo: https://github.com/Elvaceishim/anomaly-detection-system
     branch: main
     plan: free
     healthCheckPath: /health
