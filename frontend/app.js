@@ -1,6 +1,6 @@
 // API Base URL - Configure for production
 // When deployed, this should point to your Render backend URL
-const API_BASE = window.ANOMALY_API_URL || 'https://anomaly-detection-api.onrender.com';
+const API_BASE = window.ANOMALY_API_URL || 'https://anomaly-detection-system-vl30.onrender.com';
 
 // DOM Elements
 const form = document.getElementById('transactionForm');
