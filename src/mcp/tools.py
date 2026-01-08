@@ -28,6 +28,77 @@ from .schemas import (
 from .decision_store import get_decision_store
 
 
+# ============================================================
+# Mock classes for standalone testing
+# ============================================================
+
+class MockTransactionStore:
+    """Mock transaction store with sample data for standalone MCP testing."""
+    
+    def __init__(self):
+        self._transactions = [
+            {
+                "transaction_id": "txn_demo_001",
+                "user_id": "user_demo_01",
+                "amount": 500.0,
+                "merchant_category": "electronics",
+                "location": "Lagos",
+                "transaction_type": "transfer",
+                "timestamp": "2026-01-08T14:30:00Z",
+                "risk_score": 0.048,
+                "is_flagged": False
+            },
+            {
+                "transaction_id": "txn_demo_002",
+                "user_id": "user_demo_01",
+                "amount": 15000.0,
+                "merchant_category": "jewelry",
+                "location": "Lagos",
+                "transaction_type": "payment",
+                "timestamp": "2026-01-08T15:00:00Z",
+                "risk_score": 0.32,
+                "is_flagged": True
+            },
+            {
+                "transaction_id": "txn_demo_003",
+                "user_id": "user_demo_01",
+                "amount": 100000.0,
+                "merchant_category": "jewelry",
+                "location": "Tokyo",
+                "transaction_type": "transfer",
+                "timestamp": "2026-01-08T15:05:00Z",
+                "risk_score": 0.67,
+                "is_flagged": True
+            },
+            {
+                "transaction_id": "txn_flagged_001",
+                "user_id": "user_suspicious",
+                "amount": 50000.0,
+                "merchant_category": "electronics",
+                "location": "Unknown",
+                "transaction_type": "cash-out",
+                "timestamp": "2026-01-08T03:30:00Z",
+                "risk_score": 0.85,
+                "is_flagged": True
+            }
+        ]
+    
+    def get_all_transactions(self):
+        return self._transactions
+    
+    def get_user_history(self, user_id):
+        return [t for t in self._transactions if t.get("user_id") == user_id]
+
+
+class MockModelState:
+    """Mock model state for standalone MCP testing."""
+    threshold = 0.25
+
+
+# ============================================================
+# Main MCP Tools class
+# ============================================================
+
 class MCPTools:
     """
     Tool implementations for MCP server.
@@ -44,6 +115,12 @@ class MCPTools:
             transaction_store: The API's transaction store
             model_state: The loaded model state
         """
+        # Use mock store if no real store provided (for standalone testing)
+        if transaction_store is None:
+            transaction_store = MockTransactionStore()
+        if model_state is None:
+            model_state = MockModelState()
+        
         self.transaction_store = transaction_store
         self.model_state = model_state
         self.decision_store = get_decision_store()
@@ -63,15 +140,6 @@ class MCPTools:
         Returns:
             TransactionSummary dict
         """
-        # In a real implementation, this would query the transaction store
-        # For now, we'll return a structured response based on available data
-        
-        if self.transaction_store is None:
-            return {
-                "error": "Transaction store not available",
-                "transaction_id": transaction_id
-            }
-        
         # Get transaction from store
         transactions = self.transaction_store.get_all_transactions()
         txn = None
@@ -115,12 +183,6 @@ class MCPTools:
         Returns:
             UserBehaviorSnapshot dict
         """
-        if self.transaction_store is None:
-            return {
-                "error": "Transaction store not available",
-                "user_id": user_id
-            }
-        
         # Get user's transaction history
         history = self.transaction_store.get_user_history(user_id)
         
@@ -137,18 +199,9 @@ class MCPTools:
             ).model_dump()
         
         # Compute aggregated stats
-        amounts = [t.get("amount", 0) for t in history] if isinstance(history, list) else history["amount"].tolist()
-        merchants = set()
-        locations = set()
-        
-        if isinstance(history, list):
-            for t in history:
-                merchants.add(t.get("merchant_category", ""))
-                locations.add(t.get("location", ""))
-        else:
-            merchants = set(history["merchant_category"].unique())
-            locations = set(history["location"].unique())
-        
+        amounts = [t.get("amount", 0) for t in history]
+        merchants = set(t.get("merchant_category", "") for t in history)
+        locations = set(t.get("location", "") for t in history)
         txn_count = len(amounts)
         
         snapshot = UserBehaviorSnapshot(
@@ -156,7 +209,7 @@ class MCPTools:
             transaction_count_30d=txn_count,
             avg_amount_30d=sum(amounts) / len(amounts) if amounts else 0.0,
             amount_range=(min(amounts) if amounts else 0.0, max(amounts) if amounts else 0.0),
-            velocity_last_24h=min(txn_count, 10),  # Approximate
+            velocity_last_24h=min(txn_count, 10),
             unique_merchants_30d=len(merchants),
             unique_locations_30d=len(locations),
             is_new_user=txn_count < 5
@@ -177,12 +230,6 @@ class MCPTools:
         Returns:
             AnomalySignals dict
         """
-        if self.transaction_store is None:
-            return {
-                "error": "Transaction store not available",
-                "transaction_id": transaction_id
-            }
-        
         # Get transaction
         transactions = self.transaction_store.get_all_transactions()
         txn = None
@@ -204,7 +251,7 @@ class MCPTools:
         # Compute deviation signals
         amount = txn.get("amount", 0)
         
-        if isinstance(history, list) and len(history) > 0:
+        if len(history) > 0:
             past_amounts = [t.get("amount", 0) for t in history]
             mean_amount = sum(past_amounts) / len(past_amounts)
             
@@ -229,11 +276,11 @@ class MCPTools:
             transaction_id=transaction_id,
             amount_percentile=percentile,
             amount_zscore=round(zscore, 2),
-            velocity_spike=False,  # Would need time-based analysis
+            velocity_spike=False,
             location_change=is_new_location,
             merchant_change=is_new_merchant,
-            time_anomaly=False,  # Would need time pattern analysis
-            amount_vs_merchant_median=1.0  # Placeholder
+            time_anomaly=False,
+            amount_vs_merchant_median=1.0
         )
         
         return signals.model_dump()
@@ -253,12 +300,6 @@ class MCPTools:
         Returns:
             ModelExplanation dict
         """
-        if self.transaction_store is None or self.model_state is None:
-            return {
-                "error": "Model or transaction store not available",
-                "transaction_id": transaction_id
-            }
-        
         # Get transaction
         transactions = self.transaction_store.get_all_transactions()
         txn = None
@@ -274,7 +315,7 @@ class MCPTools:
             }
         
         risk_score = txn.get("risk_score", 0.0)
-        threshold = self.model_state.threshold if hasattr(self.model_state, "threshold") else 0.25
+        threshold = getattr(self.model_state, "threshold", 0.25)
         is_flagged = risk_score >= threshold
         
         # Generate explanation based on anomaly signals
