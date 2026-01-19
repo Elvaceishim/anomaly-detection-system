@@ -155,21 +155,4 @@ curl http://localhost:8000/health
 
 - **Model Updates**: Models are mounted as a volume (`./models:/app/models:ro`), so you can update models without rebuilding the image.
 - **Scaling**: Use `docker-compose up --scale api=3` with a load balancer for horizontal scaling.
-- **Persistence**: The in-memory transaction store resets on container restart. For production, integrate Redis or a database.
-
-### Deploy to Render (Recommended)
-
-1. Push this repo to GitHub
-2. Go to [render.com](https://render.com) and sign up
-3. Click **New > Web Service**
-4. Connect your GitHub repo
-5. Render will auto-detect the Dockerfile
-6. Click **Create Web Service**
-
-Your API will be live at `https://your-service.onrender.com`
-
-> **Note**: Free tier services spin down after 15 min of inactivity. First request after sleep takes ~30 seconds.
-
-## License
-
-MIT
+- **Persistence**: The in-memory transaction store resets on container restart.
